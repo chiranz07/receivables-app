@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db, appId, getUserId } from '../api/firebase';
+import React, { useState, useMemo } from 'react';
+import { useAppContext } from '../context/AppContext';
 
 const AgingReport = ({ invoices }) => {
     const agingData = useMemo(() => {
@@ -39,12 +38,15 @@ const InvoicesByGroup = ({ invoices, customers, entities, groupBy, groupNameMap,
         }, {});
     }, [invoices, groupBy]);
 
+    const customersMap = useMemo(() => new Map(customers.map(c => [c.id, c])), [customers]);
+    const entitiesMap = useMemo(() => new Map(entities.map(e => [e.id, e])), [entities]);
+
     return (
         <div className="space-y-6">
             {Object.keys(groupedData).sort().map(groupId => (
                 <div key={groupId}>
                     <h3 className="text-md font-bold text-gray-700 mb-2 border-b pb-1">
-                        {groupNameMap ? groupNameMap[groupId]?.[nameKey] : groupId}
+                        {groupNameMap ? groupNameMap.get(groupId)?.[nameKey] : groupId}
                     </h3>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left table-auto">
@@ -53,7 +55,7 @@ const InvoicesByGroup = ({ invoices, customers, entities, groupBy, groupNameMap,
                                 {groupedData[groupId].map(invoice => (
                                     <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="p-2 font-mono text-xs text-gray-500">{invoice.invoiceNumber}</td>
-                                        <td className="p-2 text-gray-600 text-xs">{groupBy === 'customerId' ? entities[invoice.entityId]?.name : customers[invoice.customerId]?.name}</td>
+                                        <td className="p-2 text-gray-600 text-xs">{groupBy === 'customerId' ? entitiesMap.get(invoice.entityId)?.name : customersMap.get(invoice.customerId)?.name}</td>
                                         <td className="p-2 font-medium text-gray-600">₹{invoice.total?.toFixed(2)}</td>
                                         <td className="p-2"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${ invoice.status === 'Paid' ? 'bg-green-100 text-green-800' : invoice.status === 'Sent' ? 'bg-blue-100 text-blue-800' : invoice.status === 'Invoiced' ? 'bg-indigo-100 text-indigo-800' : 'bg-yellow-100 text-yellow-800' }`}>{invoice.status}</span></td>
                                         <td className="p-2 text-gray-500">{invoice.dueDate}</td>
@@ -69,42 +71,11 @@ const InvoicesByGroup = ({ invoices, customers, entities, groupBy, groupNameMap,
 };
 
 const Reports = () => {
+    const { invoices, customers, entities, isLoading } = useAppContext();
     const [activeTab, setActiveTab] = useState('aging');
-    const [isLoading, setIsLoading] = useState(true);
-    const [invoices, setInvoices] = useState([]);
-    const [customers, setCustomers] = useState({});
-    const [entities, setEntities] = useState({});
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            const invoicesCollectionPath = `/artifacts/${appId}/users/${getUserId()}/invoices`;
-            const customersCollectionPath = `/artifacts/${appId}/users/${getUserId()}/customers`;
-            const entitiesCollectionPath = `/artifacts/${appId}/users/${getUserId()}/entities`;
-
-            try {
-                const [invoiceSnap, customerSnap, entitySnap] = await Promise.all([
-                    getDocs(collection(db, invoicesCollectionPath)),
-                    getDocs(collection(db, customersCollectionPath)),
-                    getDocs(collection(db, entitiesCollectionPath))
-                ]);
-
-                const customerMap = {};
-                customerSnap.forEach(doc => customerMap[doc.id] = doc.data());
-                setCustomers(customerMap);
-
-                const entityMap = {};
-                entitySnap.forEach(doc => entityMap[doc.id] = doc.data());
-                setEntities(entityMap);
-
-                setInvoices(invoiceSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            } catch (error) {
-                console.error("Error fetching report data:", error);
-            }
-            setIsLoading(false);
-        };
-        fetchData();
-    }, []);
+    const customersMap = useMemo(() => new Map(customers.map(c => [c.id, c])), [customers]);
+    const entitiesMap = useMemo(() => new Map(entities.map(e => [e.id, e])), [entities]);
 
     const TabButton = ({ tabName, currentTab, setTab, children }) => (
         <button
@@ -120,8 +91,8 @@ const Reports = () => {
         if (isLoading) return <p>Loading report data...</p>;
         switch(activeTab) {
             case 'aging': return <AgingReport invoices={invoices.filter(inv => ['Sent', 'Invoiced'].includes(inv.status))} />;
-            case 'byCustomer': return <InvoicesByGroup invoices={invoices} customers={customers} entities={entities} groupBy="customerId" groupNameMap={customers} nameKey="name" />;
-            case 'byEntity': return <InvoicesByGroup invoices={invoices} customers={customers} entities={entities} groupBy="entityId" groupNameMap={entities} nameKey="name" />;
+            case 'byCustomer': return <InvoicesByGroup invoices={invoices} customers={customers} entities={entities} groupBy="customerId" groupNameMap={customersMap} nameKey="name" />;
+            case 'byEntity': return <InvoicesByGroup invoices={invoices} customers={customers} entities={entities} groupBy="entityId" groupNameMap={entitiesMap} nameKey="name" />;
             case 'byType': return <InvoicesByGroup invoices={invoices} customers={customers} entities={entities} groupBy="type" />;
             case 'byStatus': return <InvoicesByGroup invoices={invoices} customers={customers} entities={entities} groupBy="status" />;
             default: return null;

@@ -1,46 +1,62 @@
 import React, { useState } from 'react';
-import { Home, FileText, Users, Briefcase, BarChart2, ChevronDown } from 'lucide-react';
+import { Home, FileText, Users, Briefcase, BarChart2, ChevronDown, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 function Sidebar({ setPage, currentPage }) {
     const [isInvoiceMenuOpen, setInvoiceMenuOpen] = useState(true);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     const NavLink = ({ page, icon, children, isSubmenu = false }) => {
-        const isActive = currentPage === page || (isInvoiceMenuOpen && (currentPage === 'invoices/new' || currentPage === 'invoices/view') && (page === 'invoices/new' || page === 'invoices/view'));
+        const isActive = currentPage === page || (isInvoiceMenuOpen && !isCollapsed && (currentPage === 'invoices/new' || currentPage === 'invoices/view') && (page === 'invoices/new' || page === 'invoices/view'));
         const baseClasses = "flex items-center w-full text-left px-3 py-2 text-xs font-medium rounded-md transition-colors duration-200";
         const activeClasses = "text-white";
         const inactiveClasses = "text-gray-500 hover:bg-gray-100 hover:text-gray-800";
-        const submenuClasses = isSubmenu ? 'pl-10' : '';
+
+        let submenuClasses = '';
+        if (isSubmenu) {
+            submenuClasses = isCollapsed ? 'pl-5' : 'pl-10';
+        }
 
         return (
             <button
-                onClick={() => setPage(page)}
+                onClick={() => setPage({ name: page })}
                 className={`${baseClasses} ${isActive && currentPage === page ? activeClasses : inactiveClasses} ${submenuClasses}`}
-                style={{ backgroundColor: isActive && currentPage === page ? '#2a3f50' : 'transparent' }}
+                style={{ backgroundColor: isActive && currentPage === page ? '#2a3f50' : 'transparent', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
             >
-                {icon && <span className="mr-2">{icon}</span>}
-                {children}
+                {icon && <span className={!isCollapsed ? "mr-2" : ""}>{icon}</span>}
+                {!isCollapsed && children}
             </button>
         );
     };
 
+    const handleInvoiceClick = () => {
+        if (isCollapsed) {
+            setPage({ name: 'invoices/view' });
+        } else {
+            setInvoiceMenuOpen(!isInvoiceMenuOpen);
+        }
+    };
+
     return (
-        <aside className="w-56 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col">
-            <div className="h-16 flex items-center justify-center border-b border-gray-200">
+        <aside className={`bg-white border-r border-gray-200 flex-shrink-0 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-56'}`}>
+            <div className="h-16 flex items-center justify-center border-b border-gray-200 px-2">
                 <svg className="h-7 w-7" style={{ color: '#2a3f50' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <h1 className="text-xl font-bold text-gray-800 ml-2">Receivables</h1>
+                {!isCollapsed && <h1 className="text-xl font-bold text-gray-800 ml-2">Receivables</h1>}
             </div>
             <nav className="flex-1 px-3 py-4 space-y-1">
                 <NavLink page="dashboard" icon={<Home size={16} />}>Dashboard</NavLink>
                 <NavLink page="entities" icon={<Briefcase size={16} />}>Entities</NavLink>
                 <NavLink page="customers" icon={<Users size={16} />}>Customers</NavLink>
                 <div>
-                    <button onClick={() => setInvoiceMenuOpen(!isInvoiceMenuOpen)} className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-left text-gray-500 rounded-md hover:bg-gray-100 focus:outline-none">
-                        <span className="flex items-center"><FileText size={16} className="mr-2" /> Invoices</span>
-                        <ChevronDown size={16} className={`transition-transform duration-200 ${isInvoiceMenuOpen ? 'rotate-180' : ''}`} />
+                    <button onClick={handleInvoiceClick} className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-left text-gray-500 rounded-md hover:bg-gray-100 focus:outline-none" style={{ justifyContent: isCollapsed ? 'center' : 'space-between' }}>
+                        <div className="flex items-center">
+                           <FileText size={16} className={!isCollapsed ? 'mr-2' : ''} />
+                           {!isCollapsed && 'Invoices'}
+                        </div>
+                        {!isCollapsed && <ChevronDown size={16} className={`transition-transform duration-200 ${isInvoiceMenuOpen ? 'rotate-180' : ''}`} />}
                     </button>
-                    {isInvoiceMenuOpen && (
+                    {isInvoiceMenuOpen && !isCollapsed && (
                         <div className="mt-1 space-y-1">
                             <NavLink page="invoices/new" isSubmenu={true}>Create Invoice</NavLink>
                             <NavLink page="invoices/view" isSubmenu={true}>View Invoices</NavLink>
@@ -49,7 +65,11 @@ function Sidebar({ setPage, currentPage }) {
                 </div>
                 <NavLink page="reports" icon={<BarChart2 size={16} />}>Reports</NavLink>
             </nav>
-            <div className="px-4 py-3 border-t border-gray-200"><p className="text-xs text-gray-400 text-center">&copy; 2025</p></div>
+            <div className="px-3 py-3 border-t border-gray-200">
+               <button onClick={() => setIsCollapsed(!isCollapsed)} className="w-full flex items-center justify-center text-gray-500 hover:text-gray-800">
+                   {isCollapsed ? <ChevronsRight size={20} /> : <ChevronsLeft size={20} />}
+               </button>
+            </div>
         </aside>
     );
 }

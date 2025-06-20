@@ -25,4 +25,5 @@ export const gstRates = [0, 5, 12, 18, 28];
 
 export const initialEntityState = { name: '', gstin: '', pan: '', email: '', phone: '', placeOfSupply: '', isGstRegistered: 'Yes', address: { line1: '', line2: '', city: '', state: '', pincode: '', country: '' }};
 
-export const initialCustomerState = { name: '', email: '', phone: '', gstin: '', placeOfSupply: '', address: { line1: '', line2: '', city: '', state: '', pincode: '', country: '' }};
+// --- UPDATED ---
+export const initialCustomerState = { name: '', email: '', phone: '', gstin: '', pan: '', isGstRegistered: 'No', placeOfSupply: '', address: { line1: '', line2: '', city: '', state: '', pincode: '', country: '' }};
